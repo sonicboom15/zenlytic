@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+
+      routes:
+        # Auth & Tenant Service Routes
+        - id: auth-service-route
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/tenants/**, /api/v1/app/**
+
+        - id: auth-host-route
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Host=auth.api.localhost
+
+        # Product Service Routes
+        - id: product-service-route
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/products/**, /api/v2/products/**
+
+        - id: product-host-route
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Host=products.api.localhost
+
+        # Order Service Routes
+        - id: order-service-route
+          uri: ${ORDER_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/orders/**, /api/v1/sagas/**
+
+        - id: order-host-route
+          uri: ${ORDER_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Host=orders.api.localhost
+
+        # Config & Feature Flag Service Routes
+        - id: config-service-route
+          uri: ${CONFIG_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/configs/**, /api/v1/feature-flags/**, /api/v1/features/**
+
+        - id: config-host-route
+          uri: ${CONFIG_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Host=config.api.localhost
+
+        # Worker & Scheduling Service Routes
+        - id: worker-service-route
+          uri: ${WORKER_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/jobs/**, /api/v1/dlq/**, /api/v1/admin/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
