@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TenantProvider } from './context/TenantContext';
 import { NetworkProvider } from './context/NetworkContext';
+import { ToastProvider } from './context/ToastContext';
+import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { CommerceProvider } from './context/CommerceContext';
+import { CartProvider } from './context/CartContext';
 import { LoginPage } from './pages/LoginPage';
 import { DesktopLayout } from './layouts/DesktopLayout';
 import { MobileLayout } from './layouts/MobileLayout';
@@ -16,14 +21,7 @@ import { TenantRouteGuard } from './components/TenantRouteGuard';
 
 const MainApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const [currentTab, setCurrentTab] = useState<string>('dashboard');
-  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { currentTab, isMobile } = useNavigation();
 
   if (!isAuthenticated) {
     return <LoginPage />;
@@ -32,7 +30,7 @@ const MainApp: React.FC = () => {
   const renderContent = () => {
     switch (currentTab) {
       case 'dashboard':
-        return <DashboardPage onNavigate={setCurrentTab} />;
+        return <DashboardPage />;
       case 'pos':
         return <NewOrderPOSPage />;
       case 'customers':
@@ -52,34 +50,35 @@ const MainApp: React.FC = () => {
           </TenantRouteGuard>
         );
       default:
-        return <DashboardPage onNavigate={setCurrentTab} />;
+        return <DashboardPage />;
     }
   };
 
   if (isMobile) {
-    return (
-      <MobileLayout currentTab={currentTab} onSelectTab={setCurrentTab}>
-        {renderContent()}
-      </MobileLayout>
-    );
+    return <MobileLayout>{renderContent()}</MobileLayout>;
   }
 
-  return (
-    <DesktopLayout currentTab={currentTab} onSelectTab={setCurrentTab}>
-      {renderContent()}
-    </DesktopLayout>
-  );
+  return <DesktopLayout>{renderContent()}</DesktopLayout>;
 };
 
 export function App() {
   return (
     <AuthProvider>
-      <NetworkProvider>
-        <MainApp />
-      </NetworkProvider>
+      <TenantProvider>
+        <NetworkProvider>
+          <ToastProvider>
+            <NavigationProvider>
+              <CommerceProvider>
+                <CartProvider>
+                  <MainApp />
+                </CartProvider>
+              </CommerceProvider>
+            </NavigationProvider>
+          </ToastProvider>
+        </NetworkProvider>
+      </TenantProvider>
     </AuthProvider>
   );
 }
 
 export default App;
-

@@ -3,6 +3,7 @@ export interface Customer {
   tenantId: string;
   name: string;
   code: string;
+  accountNumber?: string;
   companyName?: string;
   email?: string;
   phone?: string;

@@ -1,179 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNetwork } from '../context/NetworkContext';
-import { customerApi } from '../api/customerApi';
-import { productApi } from '../api/productApi';
-import { orderApi } from '../api/orderApi';
-import { offlineDb } from '../utils/offlineDb';
-import { Customer } from '../types/customer';
+import React, { useState } from 'react';
+import { useCommerce, useCart, useNetwork } from '../hooks';
 import { Product } from '../types/product';
 import {
+  Button,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Badge,
+  Input,
+  Select,
+  SearchInput,
+} from '../components/ui';
+import {
   ShoppingCart,
-  Users,
-  Percent,
   Plus,
   Minus,
   Trash2,
-  CheckCircle2,
-  AlertTriangle,
-  WifiOff,
+  Percent,
+  CreditCard,
   Wifi,
-  Loader2,
+  WifiOff,
+  AlertTriangle,
+  CheckCircle2,
+  Users,
   Receipt,
-  CreditCard
 } from 'lucide-react';
 
-interface CartItem {
-  product: Product;
-  quantity: number;
-}
-
 export const NewOrderPOSPage: React.FC = () => {
-  const { activeTenantId, userId } = useAuth();
-  const { isOnline, refreshQueuedCount } = useNetwork();
+  const { products, customers } = useCommerce();
+  const { isOnline } = useNetwork();
+  const {
+    items: cart,
+    addItem,
+    removeItem,
+    updateQuantity,
+    selectedCustomerId,
+    setSelectedCustomerId,
+    selectedCustomer,
+    discountPercentage,
+    setDiscountPercentage,
+    discountError,
+    subtotal,
+    discountAmount,
+    totalAmount,
+    isCheckingOut,
+    executeCheckout,
+  } = useCart();
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [discountPercentage, setDiscountPercentage] = useState<number>(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [orderSuccessMsg, setOrderSuccessMsg] = useState<string | null>(null);
 
-  // Load Customers & Products (from API or IndexedDB offline cache)
-  useEffect(() => {
-    const loadMasterData = async () => {
-      // Load Customers
-      try {
-        const res = await customerApi.list({ size: 100 });
-        const list = res.content || [];
-        setCustomers(list);
-        await offlineDb.cacheCustomers(list);
-      } catch (e) {
-        console.log('Loading offline cached customers');
-        const cached = await offlineDb.getCachedCustomers();
-        setCustomers(cached);
-      }
-
-      // Load Products
-      try {
-        const res = await productApi.list(0, 100);
-        const list = res.content || [];
-        setProducts(list);
-        await offlineDb.cacheProducts(list);
-      } catch (e) {
-        console.log('Loading offline cached products');
-        const cached = await offlineDb.getCachedProducts();
-        setProducts(cached);
-      }
-    };
-
-    loadMasterData();
-  }, [activeTenantId]);
-
-  const selectedCustomer = customers.find((c) => c.customerId === selectedCustomerId);
   const maxAllowedDiscount = selectedCustomer ? Number(selectedCustomer.maxDiscountPercentage) : 0;
+  const isDiscountOverLimit = !!discountError;
 
-  // Cart operations
-  const addToCart = (product: Product) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
-  };
-
-  const updateQuantity = (productId: number, delta: number) => {
-    setCart((prev) =>
-      prev
-        .map((item) => {
-          if (item.product.id === productId) {
-            const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean) as CartItem[]
-    );
-  };
-
-  const removeFromCart = (productId: number) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  };
-
-  // Calculations
-  const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
-  const discountAmount = (subtotal * (discountPercentage || 0)) / 100;
-  const finalTotal = Math.max(0, subtotal - discountAmount);
-
-  // Discount validation warning
-  const isDiscountOverLimit = selectedCustomer && discountPercentage > maxAllowedDiscount;
+  // Filtered products
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handlePlaceOrder = async () => {
-    if (cart.length === 0) {
-      alert('Please add at least one product to the order cart.');
-      return;
-    }
-
-    if (isDiscountOverLimit) {
-      alert(`Cannot submit order: Discount (${discountPercentage}%) exceeds customer limit (${maxAllowedDiscount}%).`);
-      return;
-    }
-
-    setSubmitting(true);
     setOrderSuccessMsg(null);
-
-    const idempotencyKey = 'pos-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-    const orderItems = cart.map((item) => ({
-      sku: item.product.sku,
-      productName: item.product.name,
-      unitPrice: Number(item.product.price),
-      quantity: item.quantity,
-    }));
-
-    try {
-      if (isOnline) {
-        // Direct Online Distributed Saga Execution
-        const placed = await orderApi.placeOrder({
-          items: orderItems,
-          idempotencyKey,
-          customerId: selectedCustomer?.customerId,
-          customerName: selectedCustomer?.name,
-          discountPercentage,
-        });
-
-        setOrderSuccessMsg(`Order [${placed.orderId}] confirmed successfully via Saga Orchestrator! Total: $${placed.totalAmount}`);
+    const result = await executeCheckout();
+    if (result.success) {
+      if (result.isOffline) {
+        setOrderSuccessMsg(
+          `Offline Mode: Order saved to local outbox! It will automatically synchronize when network is restored.`
+        );
       } else {
-        // Offline Outbox Capture
-        const localId = 'draft-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-        await offlineDb.saveDraftOrder({
-          localId,
-          idempotencyKey,
-          tenantId: activeTenantId,
-          customerId: selectedCustomer?.customerId,
-          customerName: selectedCustomer?.name,
-          discountPercentage,
-          items: orderItems,
-          totalAmount: finalTotal,
-          createdAt: Date.now(),
-          syncStatus: 'QUEUED',
-        });
-
-        await refreshQueuedCount();
-        setOrderSuccessMsg(`Offline Mode: Order saved to local outbox! It will automatically synchronize when network is restored.`);
+        setOrderSuccessMsg(
+          `Order [${result.orderId}] confirmed successfully via Saga Orchestrator! Total: $${totalAmount.toFixed(2)}`
+        );
       }
-
-      // Reset cart
-      setCart([]);
-      setDiscountPercentage(0);
-    } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Failed to place order');
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -182,33 +82,33 @@ export const NewOrderPOSPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-blue-600" />
             <span>Field Sales Point-of-Sale (POS)</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Offline-first checkout terminal with corporate customer limits and Saga order placement.
+          <p className="text-xs text-slate-500 mt-1">
+            Create sales orders with customer credit limits and real-time stock allocation.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {!isOnline ? (
-            <span className="flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs px-3 py-1.5 rounded-xl font-bold">
-              <WifiOff className="w-4 h-4" />
+            <Badge variant="warning" size="md">
+              <WifiOff className="w-3.5 h-3.5" />
               <span>Offline POS Mode</span>
-            </span>
+            </Badge>
           ) : (
-            <span className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-1.5 rounded-xl font-bold">
-              <Wifi className="w-4 h-4" />
+            <Badge variant="success" size="md">
+              <Wifi className="w-3.5 h-3.5" />
               <span>Online (Connected)</span>
-            </span>
+            </Badge>
           )}
         </div>
       </div>
 
       {orderSuccessMsg && (
-        <div className="bg-emerald-950/80 border border-emerald-700 text-emerald-200 text-xs p-4 rounded-2xl flex items-center gap-3 shadow-lg animate-fadeIn">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs p-4 rounded-xl flex items-center gap-3 shadow-xs animate-fadeIn">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <div className="flex-1 font-semibold">{orderSuccessMsg}</div>
         </div>
       )}
@@ -218,14 +118,14 @@ export const NewOrderPOSPage: React.FC = () => {
         {/* Catalog Selector (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           {/* Customer Selector Card */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-md space-y-3">
+          <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-200 flex items-center gap-2">
-                <Users className="w-4 h-4 text-sky-400" />
+              <span className="font-bold text-slate-800 flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-600" />
                 <span>Select B2B Client Account</span>
               </span>
               {selectedCustomer && (
-                <span className="font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60 font-bold">
+                <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold text-xs">
                   Max Auth Discount: {selectedCustomer.maxDiscountPercentage}%
                 </span>
               )}
@@ -238,124 +138,139 @@ export const NewOrderPOSPage: React.FC = () => {
                 setDiscountPercentage(0);
               }}
               aria-label="Select B2B Client Account"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-emerald-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
             >
               <option value="">-- Direct Retail / Guest Walk-in --</option>
               {customers.map((c) => (
                 <option key={c.customerId} value={c.customerId}>
-                  {c.name} ({c.code}) - {c.tier} Tier [Max {c.maxDiscountPercentage}% Disc]
+                  {c.name} ({c.accountNumber || c.code || 'B2B'}) - {c.tier} Tier [Max {c.maxDiscountPercentage}% Disc]
                 </option>
               ))}
             </select>
 
             {selectedCustomer && (
-              <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 grid grid-cols-3 gap-2 text-[11px]">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 grid grid-cols-3 gap-2 text-[11px]">
                 <div>
-                  <div className="text-slate-400">Account Tier</div>
-                  <div className="font-bold text-white uppercase">{selectedCustomer.tier}</div>
+                  <div className="text-slate-500 font-medium">Account Tier</div>
+                  <div className="font-bold text-slate-900 uppercase">{selectedCustomer.tier}</div>
                 </div>
                 <div>
-                  <div className="text-slate-400">Credit Limit</div>
-                  <div className="font-bold text-white font-mono">${Number(selectedCustomer.creditLimit).toLocaleString()}</div>
+                  <div className="text-slate-500 font-medium">Credit Limit</div>
+                  <div className="font-bold text-slate-900 font-mono">
+                    ${Number(selectedCustomer.creditLimit).toLocaleString()}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-slate-400">Available Credit</div>
-                  <div className="font-bold text-emerald-400 font-mono">${Number(selectedCustomer.availableCredit || selectedCustomer.creditLimit).toLocaleString()}</div>
+                  <div className="text-slate-500 font-medium">Available Credit</div>
+                  <div className="font-bold text-emerald-700 font-mono">
+                    ${Number(selectedCustomer.availableCredit || selectedCustomer.creditLimit).toLocaleString()}
+                  </div>
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Product Items Quick Add Grid */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-md space-y-3">
-            <h3 className="font-bold text-xs text-slate-200 uppercase tracking-wider">
-              Available Catalog Items ({products.length})
-            </h3>
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs text-slate-700 uppercase tracking-wider">
+                Available Catalog Items ({filteredProducts.length})
+              </h3>
+              <div className="w-48">
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Filter items..."
+                />
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  onClick={() => addToCart(product)}
-                  className="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-800/40 p-3.5 rounded-xl transition cursor-pointer flex flex-col justify-between"
+                  onClick={() => addItem(product)}
+                  className="bg-slate-50/60 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 p-3.5 rounded-xl transition cursor-pointer flex flex-col justify-between group shadow-2xs"
                 >
                   <div>
-                    <div className="font-bold text-xs text-white truncate">{product.name}</div>
-                    <div className="text-[11px] font-mono text-purple-300 mt-0.5">{product.sku}</div>
+                    <div className="font-bold text-xs text-slate-900 group-hover:text-blue-700 truncate">
+                      {product.name}
+                    </div>
+                    <div className="text-[11px] font-mono text-purple-700 mt-0.5">{product.sku}</div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800/60">
-                    <div className="font-bold text-sm text-white font-mono">
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200">
+                    <div className="font-bold text-sm text-slate-900 font-mono">
                       ${Number(product.price).toFixed(2)}
                     </div>
-                    <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded font-semibold">
+                    <span className="text-[11px] text-blue-700 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white px-2 py-0.5 rounded font-semibold transition border border-blue-200">
                       + Add
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Cart & Checkout Panel (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col justify-between min-h-[500px]">
+          <Card className="p-5 flex flex-col justify-between min-h-[500px]">
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-indigo-400" />
-                  <h3 className="font-bold text-sm text-white">Current Order Cart</h3>
+                  <Receipt className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-bold text-sm text-slate-900">Current Order Cart</h3>
                 </div>
-                <span className="text-xs font-mono bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300">
+                <span className="text-xs font-mono bg-slate-100 px-2.5 py-0.5 rounded-full text-slate-700 font-semibold">
                   {cart.length} item(s)
                 </span>
               </div>
 
               {/* Items List */}
-              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                 {cart.length === 0 ? (
-                  <div className="text-center py-12 text-xs text-slate-500">
+                  <div className="text-center py-12 text-xs text-slate-400">
                     Cart is empty. Select products on the left to build the order.
                   </div>
                 ) : (
                   cart.map((item) => (
                     <div
-                      key={item.product.id}
-                      className="bg-slate-950 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between gap-2"
+                      key={item.sku}
+                      className="bg-slate-50 border border-slate-200/80 rounded-lg p-2.5 flex items-center justify-between gap-2"
                     >
                       <div className="truncate flex-1">
-                        <div className="font-bold text-xs text-white truncate">{item.product.name}</div>
-                        <div className="text-[11px] font-mono text-slate-400">
-                          ${Number(item.product.price).toFixed(2)} ea
+                        <div className="font-semibold text-xs text-slate-900 truncate">{item.name}</div>
+                        <div className="text-[10px] font-mono text-slate-500">
+                          ${item.unitPrice.toFixed(2)} ea
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => updateQuantity(item.product.id, -1)}
-                          className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition"
+                          onClick={() => updateQuantity(item.sku, item.quantity - 1)}
+                          className="w-5 h-5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="font-mono text-xs font-bold text-white w-5 text-center">
+                        <span className="font-mono text-xs font-bold text-slate-900 w-5 text-center">
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.product.id, 1)}
-                          className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition"
+                          onClick={() => updateQuantity(item.sku, item.quantity + 1)}
+                          className="w-5 h-5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
 
-                      <div className="font-mono text-xs font-bold text-white min-w-[50px] text-right">
-                        ${(Number(item.product.price) * item.quantity).toFixed(2)}
+                      <div className="font-mono text-xs font-bold text-slate-900 min-w-[55px] text-right">
+                        ${(item.unitPrice * item.quantity).toFixed(2)}
                       </div>
 
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
-                        className="text-slate-500 hover:text-rose-400 p-1"
+                        onClick={() => removeItem(item.sku)}
+                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -366,17 +281,17 @@ export const NewOrderPOSPage: React.FC = () => {
             </div>
 
             {/* Discount & Totals Section */}
-            <div className="pt-4 border-t border-slate-800 space-y-3 mt-4">
+            <div className="pt-4 border-t border-slate-200 space-y-3 mt-4">
               {/* Discount Input */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Percent className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Percent className="w-3.5 h-3.5 text-blue-600" />
                     <span>Authorized B2B Discount (%)</span>
                   </span>
                   {selectedCustomer && (
-                    <span className="text-[11px] text-slate-400">
-                      Cap: <strong>{maxAllowedDiscount}%</strong>
+                    <span className="text-[11px] text-slate-500">
+                      Cap: <strong className="text-slate-800 font-bold">{maxAllowedDiscount}%</strong>
                     </span>
                   )}
                 </div>
@@ -388,63 +303,58 @@ export const NewOrderPOSPage: React.FC = () => {
                   max="100"
                   value={discountPercentage}
                   onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)}
-                  className={`w-full bg-slate-950 border rounded-xl p-2.5 text-xs text-white font-mono outline-none ${
-                    isDiscountOverLimit ? 'border-rose-500 focus:ring-1 focus:ring-rose-500' : 'border-slate-800 focus:border-emerald-500'
+                  className={`w-full bg-slate-50 border rounded-lg p-2.5 text-xs text-slate-900 font-mono outline-none transition ${
+                    isDiscountOverLimit
+                      ? 'border-rose-500 bg-rose-50 focus:ring-1 focus:ring-rose-500'
+                      : 'border-slate-300 focus:border-blue-500 focus:bg-white'
                   }`}
                   placeholder="0.0"
                 />
 
                 {isDiscountOverLimit && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-rose-400 text-[11px] font-semibold bg-rose-950/40 p-2 rounded-lg border border-rose-800/50">
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="mt-1.5 flex items-center gap-1.5 text-rose-800 text-[11px] font-semibold bg-rose-50 p-2 rounded-lg border border-rose-200">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                     <span>Discount cannot exceed client limit of {maxAllowedDiscount}%.</span>
                   </div>
                 )}
               </div>
 
               {/* Cost Summary */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-1.5 text-xs">
-                <div className="flex justify-between text-slate-400">
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-1.5 text-xs">
+                <div className="flex justify-between text-slate-500">
                   <span>Subtotal:</span>
-                  <span className="font-mono">${subtotal.toFixed(2)}</span>
+                  <span className="font-mono text-slate-800 font-medium">${subtotal.toFixed(2)}</span>
                 </div>
                 {discountPercentage > 0 && (
-                  <div className="flex justify-between text-emerald-400">
+                  <div className="flex justify-between text-emerald-700 font-medium">
                     <span>Discount ({discountPercentage}%):</span>
                     <span className="font-mono">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
+                <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
                   <span>Total Due:</span>
-                  <span className="font-mono text-emerald-400">${finalTotal.toFixed(2)}</span>
+                  <span className="font-mono text-blue-700">${totalAmount.toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Checkout / Submit Button */}
-              <button
+              {/* Checkout Button */}
+              <Button
+                variant="primary"
+                size="lg"
+                loading={isCheckingOut}
+                disabled={cart.length === 0 || isDiscountOverLimit}
                 onClick={handlePlaceOrder}
-                disabled={submitting || cart.length === 0 || isDiscountOverLimit}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-xl shadow-emerald-900/40 flex items-center justify-center gap-2"
+                className="w-full py-3"
+                icon={!isOnline ? <WifiOff className="w-4 h-4 text-amber-200" /> : <CreditCard className="w-4 h-4" />}
               >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : !isOnline ? (
-                  <>
-                    <WifiOff className="w-4 h-4 text-amber-300" />
-                    <span>Queue Offline Order ({cart.length} items)</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    <span>Execute Saga Checkout (${finalTotal.toFixed(2)})</span>
-                  </>
-                )}
-              </button>
+                {!isOnline
+                  ? `Queue Offline Order (${cart.length} items)`
+                  : `Execute Saga Checkout ($${totalAmount.toFixed(2)})`}
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
   );
 };
-

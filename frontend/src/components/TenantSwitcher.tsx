@@ -1,52 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { authApi } from '../api/authApi';
-import { Tenant } from '../types/auth';
-import { Building2, ShieldCheck, Lock } from 'lucide-react';
+import React from 'react';
+import { useAuth, useTenant } from '../hooks';
+import { Building2, Shield } from 'lucide-react';
 
 export const TenantSwitcher: React.FC = () => {
-  const { isSuperAdmin, activeTenantId, switchTenant, userTenantId } = useAuth();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { isSuperAdmin, userTenantId } = useAuth();
+  const { activeTenantId, tenantName, tenantTier, availableTenants, loadingTenants, switchTenant } = useTenant();
 
-  useEffect(() => {
-    if (isSuperAdmin) {
-      setLoading(true);
-      authApi.listTenants()
-        .then((data) => setTenants(data || []))
-        .catch((e) => console.warn('Failed to load tenants list', e))
-        .finally(() => setLoading(false));
-    }
-  }, [isSuperAdmin]);
+  const currentOrg = availableTenants.find((t) => t.tenantId === activeTenantId);
+  const displayName = currentOrg?.name || tenantName || activeTenantId;
+  const displayTier = currentOrg?.tier || tenantTier || 'ENTERPRISE';
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300">
-        <Lock className="w-3.5 h-3.5 text-emerald-400" />
-        <span>Tenant: <strong className="text-white font-mono">{userTenantId}</strong></span>
+      <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs shadow-sm">
+        <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+          <Building2 className="w-3.5 h-3.5" />
+        </div>
+        <div className="flex flex-col">
+          <span className="font-semibold text-slate-800 tracking-tight text-xs">{displayName}</span>
+          <span className="text-[10px] font-mono text-slate-500">{userTenantId}</span>
+        </div>
+        <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+          {displayTier}
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 bg-slate-800/90 border border-indigo-500/40 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 shadow-sm">
-      <ShieldCheck className="w-4 h-4 text-indigo-400" />
-      <span className="text-indigo-300 font-semibold">Tenant:</span>
-      <select
-        value={activeTenantId}
-        onChange={(e) => switchTenant(e.target.value)}
-        disabled={loading}
-        aria-label="Active Tenant"
-        className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-0.5 text-xs font-mono focus:ring-1 focus:ring-indigo-500 outline-none"
-      >
-        <option value="default">default (Primary)</option>
-        {tenants.map((t) => (
-          <option key={t.tenantId} value={t.tenantId}>
-            {t.name} ({t.tenantId})
-          </option>
-        ))}
-      </select>
+    <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-lg text-xs shadow-sm hover:border-slate-300 transition">
+      <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-700 font-bold shrink-0">
+        <Building2 className="w-3.5 h-3.5" />
+      </div>
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-slate-900 text-xs truncate max-w-[180px]">{displayName}</span>
+          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase">
+            {displayTier}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
+          <Shield className="w-3 h-3 text-emerald-600" />
+          <select
+            value={activeTenantId}
+            onChange={(e) => {
+              const selected = availableTenants.find((t) => t.tenantId === e.target.value);
+              switchTenant(e.target.value, selected?.name);
+            }}
+            disabled={loadingTenants}
+            aria-label="Active Tenant Workspace"
+            className="bg-transparent border-none text-slate-600 font-medium focus:ring-0 p-0 text-[10px] cursor-pointer outline-none"
+          >
+            <option value="default">default (System Root)</option>
+            {availableTenants.map((t) => (
+              <option key={t.tenantId} value={t.tenantId}>
+                {t.name} ({t.tenantId})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 };
-

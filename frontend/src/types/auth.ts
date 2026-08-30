@@ -25,6 +25,8 @@ export interface AuthResponse {
   expiresIn: number;
   userId: string;
   tenantId: string;
+  tenantName?: string;
+  email?: string;
+  tier?: string;
   roles: string[];
 }
-

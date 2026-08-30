@@ -7,12 +7,16 @@ export const authApi = {
       email,
       password,
       tenantId,
+    }, {
+      headers: tenantId ? { 'X-Tenant-ID': tenantId } : undefined
     });
     return res.data.data;
   },
 
   registerTenant: async (payload: { tenantId: string; name: string; adminEmail: string; adminPassword: string; tier: string }) => {
-    const res = await api.post<{ success: boolean; data: AuthResponse; message: string }>('/api/v1/tenants/register', payload);
+    const res = await api.post<{ success: boolean; data: AuthResponse; message: string }>('/api/v1/tenants/register', payload, {
+      headers: payload.tenantId ? { 'X-Tenant-ID': payload.tenantId } : undefined
+    });
     return res.data.data;
   },
 
