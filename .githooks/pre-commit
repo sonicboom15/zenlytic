@@ -1,0 +1,23 @@
+#!/bin/sh
+# Auto-trigger Playwright E2E test suite before every git commit
+echo ""
+echo "=========================================================="
+echo "  RUNNING PLAYWRIGHT E2E TESTS (PRE-COMMIT HOOK)         "
+echo "=========================================================="
+echo ""
+
+cd e2e-playwright || exit 1
+npm test
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+  echo ""
+  echo "❌ Playwright E2E Tests Failed! Commit aborted."
+  echo "=========================================================="
+  exit 1
+fi
+
+echo ""
+echo "✅ All Playwright E2E Tests Passed! Proceeding with commit..."
+echo "=========================================================="
+exit 0

@@ -1,0 +1,26 @@
+{
+  "name": "enterprise-microservices-e2e-playwright",
+  "version": "1.0.0",
+  "description": "End-to-End API Integration Test Suite for Enterprise Multi-Tenant Microservices",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "microservices",
+    "api-testing",
+    "typescript"
+  ],
+  "author": "Google DeepMind Advanced Agentic Coding",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}
