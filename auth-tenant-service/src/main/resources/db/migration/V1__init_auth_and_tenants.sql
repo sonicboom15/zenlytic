@@ -67,5 +67,5 @@ CREATE TABLE IF NOT EXISTS app_version_policies (
 INSERT INTO app_version_policies (client_type, min_supported_version, latest_version, update_url, upgrade_title, upgrade_message)
 VALUES
 ('iOS', '2.0.0', '3.0.0', 'https://apps.apple.com/app/id123456789', 'App Update Required', 'Please update to continue using the application.'),
-('Android', '2.0.0', '3.0.0', 'https://play.google.com/store/apps/details?id=com.example.app', 'App Update Required', 'Please update to continue using the application.')
+('Android', '2.0.0', '3.0.0', 'https://play.google.com/store/apps/details?id=com.zenlytic.app', 'App Update Required', 'Please update to continue using the application.')
 ON CONFLICT (client_type) DO NOTHING;
