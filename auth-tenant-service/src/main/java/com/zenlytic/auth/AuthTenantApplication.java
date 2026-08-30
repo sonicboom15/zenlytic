@@ -3,7 +3,7 @@ package com.zenlytic.auth;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"com.zenlytic.auth", "com.zenlytic.common"})
+@SpringBootApplication(scanBasePackages = "com.zenlytic")
 public class AuthTenantApplication {
 
     public static void main(String[] args) {

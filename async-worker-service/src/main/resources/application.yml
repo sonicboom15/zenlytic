@@ -9,6 +9,11 @@ spring:
     virtual:
       enabled: true
 
+  flyway:
+    enabled: true
+    validate-on-migrate: false
+    baseline-on-migrate: true
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/worker_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}

@@ -3,7 +3,7 @@ package com.zenlytic.product;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"com.zenlytic.product", "com.zenlytic.common"})
+@SpringBootApplication(scanBasePackages = "com.zenlytic")
 public class ProductApplication {
 
     public static void main(String[] args) {

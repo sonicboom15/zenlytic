@@ -3,7 +3,7 @@ package com.zenlytic.worker;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"com.zenlytic.worker", "com.zenlytic.common"})
+@SpringBootApplication(scanBasePackages = "com.zenlytic")
 public class WorkerApplication {
 
     public static void main(String[] args) {
