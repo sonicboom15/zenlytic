@@ -42,6 +42,28 @@ public class OrderController {
                 .body(ApiResponse.created("Order placed and orchestrated successfully", response));
     }
 
+    @PostMapping("/batch")
+    @Auditable(action = "BATCH_PLACE_ORDERS", resource = "ORDER")
+    @Operation(summary = "Batch place orders and orchestrate sagas")
+    public ResponseEntity<ApiResponse<com.zenlytic.common.batch.model.BatchResponse<OrderDto.Response>>> batchPlaceOrders(
+            @Valid @RequestBody com.zenlytic.common.batch.model.BatchRequest<OrderDto.CreateRequest> request) {
+        com.zenlytic.common.batch.model.BatchResponse<OrderDto.Response> response = commandBus.dispatch(new com.zenlytic.order.commands.BatchPlaceOrdersCommandRecord.Command(request));
+        return ResponseEntity.ok(ApiResponse.ok("Batch orders processed", response));
+    }
+
+    @GetMapping
+    @Operation(summary = "List orders paged with optional filters for status, customerId, or search")
+    public ResponseEntity<ApiResponse<com.zenlytic.common.model.PagedResponse<OrderDto.Response>>> listOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String customerId,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        com.zenlytic.common.model.PagedResponse<OrderDto.Response> response = queryBus.execute(
+                new com.zenlytic.order.queries.ListOrdersQueryRecord.Query(status, customerId, search, page, size));
+        return ResponseEntity.ok(ApiResponse.ok("Orders list retrieved", response));
+    }
+
     @GetMapping("/{orderId}")
     @Operation(summary = "Get order details by order ID")
     public ResponseEntity<ApiResponse<OrderDto.Response>> getOrder(@PathVariable String orderId) {

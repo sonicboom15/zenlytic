@@ -40,6 +40,8 @@ logs/
 ### Playwright / Node ###
 node_modules/
 **/node_modules/
+dist/
+**/dist/
 playwright-report/
 **/playwright-report/
 test-results/

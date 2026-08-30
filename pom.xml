@@ -19,6 +19,7 @@
         <module>order-service</module>
         <module>config-feature-service</module>
         <module>async-worker-service</module>
+        <module>customer-service</module>
     </modules>
 
     <properties>

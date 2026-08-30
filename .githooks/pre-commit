@@ -1,23 +1,46 @@
 #!/bin/sh
-# Auto-trigger Playwright E2E test suite before every git commit
+# Enterprise Multi-Tenant Microservices Suite - Git Pre-Commit Hook
+# Auto-triggers Frontend TypeCheck/Build and Playwright E2E + UI Test Suite before commit
+
 echo ""
 echo "=========================================================="
-echo "  RUNNING PLAYWRIGHT E2E TESTS (PRE-COMMIT HOOK)         "
+echo "  ZENLYTIC PRE-COMMIT QUALITY GATE                        "
 echo "=========================================================="
 echo ""
 
+# 1. Frontend Build & TypeScript Integrity Check
+echo "🔍 [1/2] Verifying Frontend TypeScript & Production Build..."
+cd frontend || exit 1
+npm run build
+FRONTEND_STATUS=$?
+cd ..
+
+if [ $FRONTEND_STATUS -ne 0 ]; then
+  echo ""
+  echo "❌ Frontend Build / TypeScript Check Failed! Commit aborted."
+  echo "=========================================================="
+  exit 1
+fi
+echo "✅ Frontend Build & Types Verified."
+
+# 2. Playwright E2E API & UI Browser Test Suite (21 Tests across 7 Specs)
+echo ""
+echo "🧪 [2/2] Running Playwright E2E & UI Verification Suite..."
 cd e2e-playwright || exit 1
 npm test
+PLAYWRIGHT_STATUS=$?
+cd ..
 
-STATUS=$?
-if [ $STATUS -ne 0 ]; then
+if [ $PLAYWRIGHT_STATUS -ne 0 ]; then
   echo ""
-  echo "❌ Playwright E2E Tests Failed! Commit aborted."
+  echo "❌ Playwright E2E & UI Tests Failed! Commit aborted."
   echo "=========================================================="
   exit 1
 fi
 
 echo ""
-echo "✅ All Playwright E2E Tests Passed! Proceeding with commit..."
 echo "=========================================================="
+echo "✅ ALL PRE-COMMIT CHECKS PASSED (100%)! Proceeding with commit..."
+echo "=========================================================="
+echo ""
 exit 0

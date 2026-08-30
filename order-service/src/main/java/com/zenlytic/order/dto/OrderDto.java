@@ -83,19 +83,28 @@ public class OrderDto {
             @Valid
             List<ItemRequest> items,
 
-            String idempotencyKey
+            String idempotencyKey,
+            String customerId,
+            String customerName,
+            BigDecimal discountPercentage
     ) {
         public static Builder builder() { return new Builder(); }
 
         public static class Builder {
             private List<ItemRequest> items;
             private String idempotencyKey;
+            private String customerId;
+            private String customerName;
+            private BigDecimal discountPercentage = BigDecimal.ZERO;
 
             public Builder items(List<ItemRequest> items) { this.items = items; return this; }
             public Builder idempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; return this; }
+            public Builder customerId(String customerId) { this.customerId = customerId; return this; }
+            public Builder customerName(String customerName) { this.customerName = customerName; return this; }
+            public Builder discountPercentage(BigDecimal discountPercentage) { this.discountPercentage = discountPercentage; return this; }
 
             public CreateRequest build() {
-                return new CreateRequest(items, idempotencyKey);
+                return new CreateRequest(items, idempotencyKey, customerId, customerName, discountPercentage);
             }
         }
     }
@@ -108,6 +117,9 @@ public class OrderDto {
             BigDecimal totalAmount,
             String paymentReference,
             String sagaId,
+            String customerId,
+            String customerName,
+            BigDecimal discountPercentage,
             List<ItemResponse> items,
             Instant createdAt
     ) {
@@ -121,6 +133,9 @@ public class OrderDto {
             private BigDecimal totalAmount;
             private String paymentReference;
             private String sagaId;
+            private String customerId;
+            private String customerName;
+            private BigDecimal discountPercentage = BigDecimal.ZERO;
             private List<ItemResponse> items;
             private Instant createdAt;
 
@@ -131,11 +146,14 @@ public class OrderDto {
             public Builder totalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; return this; }
             public Builder paymentReference(String paymentReference) { this.paymentReference = paymentReference; return this; }
             public Builder sagaId(String sagaId) { this.sagaId = sagaId; return this; }
+            public Builder customerId(String customerId) { this.customerId = customerId; return this; }
+            public Builder customerName(String customerName) { this.customerName = customerName; return this; }
+            public Builder discountPercentage(BigDecimal discountPercentage) { this.discountPercentage = discountPercentage; return this; }
             public Builder items(List<ItemResponse> items) { this.items = items; return this; }
             public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
 
             public Response build() {
-                return new Response(orderId, userId, tenantId, status, totalAmount, paymentReference, sagaId, items, createdAt);
+                return new Response(orderId, userId, tenantId, status, totalAmount, paymentReference, sagaId, customerId, customerName, discountPercentage, items, createdAt);
             }
         }
     }

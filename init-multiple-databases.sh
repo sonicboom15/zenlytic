@@ -16,3 +16,4 @@ create_user_and_database "product_db" || true
 create_user_and_database "order_db" || true
 create_user_and_database "config_db" || true
 create_user_and_database "worker_db" || true
+create_user_and_database "customer_db" || true

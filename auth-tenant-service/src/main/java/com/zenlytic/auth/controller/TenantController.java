@@ -37,6 +37,13 @@ public class TenantController {
                 .body(ApiResponse.created("Tenant onboarded successfully", response));
     }
 
+    @GetMapping
+    @Operation(summary = "List all organization tenants")
+    public ResponseEntity<ApiResponse<java.util.List<TenantResponseDto>>> listTenants() {
+        java.util.List<TenantResponseDto> response = queryBus.execute(new com.zenlytic.auth.queries.ListTenantsQueryRecord.Query());
+        return ResponseEntity.ok(ApiResponse.ok("Tenants list retrieved", response));
+    }
+
     @GetMapping("/{tenantId}")
     @Operation(summary = "Get tenant details by tenant ID")
     public ResponseEntity<ApiResponse<TenantResponseDto>> getTenant(@PathVariable String tenantId) {

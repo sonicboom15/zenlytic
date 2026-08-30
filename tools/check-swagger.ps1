@@ -11,7 +11,8 @@ $services = @(
     @{ Name = "Product Service";       Port = 8082; Swagger = "http://localhost:8082/swagger-ui/index.html"; ApiDocs = "http://localhost:8082/v3/api-docs" },
     @{ Name = "Async Worker Service";  Port = 8083; Swagger = "http://localhost:8083/swagger-ui/index.html"; ApiDocs = "http://localhost:8083/v3/api-docs" },
     @{ Name = "Config & Feature Flag"; Port = 8084; Swagger = "http://localhost:8084/swagger-ui/index.html"; ApiDocs = "http://localhost:8084/v3/api-docs" },
-    @{ Name = "Order Service";         Port = 8085; Swagger = "http://localhost:8085/swagger-ui/index.html"; ApiDocs = "http://localhost:8085/v3/api-docs" }
+    @{ Name = "Order Service";         Port = 8085; Swagger = "http://localhost:8085/swagger-ui/index.html"; ApiDocs = "http://localhost:8085/v3/api-docs" },
+    @{ Name = "Customer & B2B Service";Port = 8086; Swagger = "http://localhost:8086/swagger-ui/index.html"; ApiDocs = "http://localhost:8086/v3/api-docs" }
 )
 
 foreach ($s in $services) {

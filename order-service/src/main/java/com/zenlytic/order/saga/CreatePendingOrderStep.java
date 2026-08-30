@@ -36,18 +36,23 @@ public class CreatePendingOrderStep implements SagaStep<Void> {
 
         String orderId = "ord-" + UUID.randomUUID().toString().substring(0, 8);
 
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal subtotalSum = BigDecimal.ZERO;
+        BigDecimal discountPct = request.discountPercentage() != null ? request.discountPercentage() : BigDecimal.ZERO;
+
         Order order = Order.builder()
                 .orderId(orderId)
                 .userId(userId != null ? userId : "anonymous")
                 .status("PENDING")
                 .idempotencyKey(idempotencyKey)
+                .customerId(request.customerId())
+                .customerName(request.customerName())
+                .discountPercentage(discountPct)
                 .build();
         order.setTenantId(context.getTenantId());
 
         for (OrderDto.ItemRequest itemReq : request.items()) {
             BigDecimal subtotal = itemReq.unitPrice().multiply(BigDecimal.valueOf(itemReq.quantity()));
-            totalAmount = totalAmount.add(subtotal);
+            subtotalSum = subtotalSum.add(subtotal);
 
             OrderItem orderItem = OrderItem.builder()
                     .sku(itemReq.sku())
@@ -57,6 +62,14 @@ public class CreatePendingOrderStep implements SagaStep<Void> {
                     .subtotal(subtotal)
                     .build();
             order.addItem(orderItem);
+        }
+
+        BigDecimal totalAmount;
+        if (discountPct.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal discountFactor = BigDecimal.ONE.subtract(discountPct.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP));
+            totalAmount = subtotalSum.multiply(discountFactor).setScale(2, java.math.RoundingMode.HALF_UP);
+        } else {
+            totalAmount = subtotalSum.setScale(2, java.math.RoundingMode.HALF_UP);
         }
 
         order.setTotalAmount(totalAmount);

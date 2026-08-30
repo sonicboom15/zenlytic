@@ -72,6 +72,33 @@ public class ProductController {
                 .body(ApiResponse.created("Product created successfully", response));
     }
 
+    @PostMapping({"/api/v1/products/batch", "/api/v2/products/batch"})
+    @Auditable(action = "BATCH_CREATE_PRODUCTS", resource = "PRODUCT")
+    @Operation(summary = "Batch import and create products")
+    public ResponseEntity<ApiResponse<com.zenlytic.common.batch.model.BatchResponse<ProductDto.Response>>> batchCreateProducts(
+            @Valid @RequestBody com.zenlytic.common.batch.model.BatchRequest<ProductDto.Request> request) {
+        com.zenlytic.common.batch.model.BatchResponse<ProductDto.Response> response = commandBus.dispatch(new com.zenlytic.product.commands.BatchCreateProductsCommandRecord.Command(request));
+        return ResponseEntity.ok(ApiResponse.ok("Batch product import processed", response));
+    }
+
+    @PutMapping({"/api/v1/products/{id}", "/api/v2/products/{id}"})
+    @Auditable(action = "UPDATE_PRODUCT", resource = "PRODUCT")
+    @Operation(summary = "Update product details")
+    public ResponseEntity<ApiResponse<ProductDto.Response>> updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductDto.Request request) {
+        ProductDto.Response response = commandBus.dispatch(new com.zenlytic.product.commands.UpdateProductCommandRecord.Command(id, request));
+        return ResponseEntity.ok(ApiResponse.ok("Product updated successfully", response));
+    }
+
+    @DeleteMapping({"/api/v1/products/{id}", "/api/v2/products/{id}"})
+    @Auditable(action = "DELETE_PRODUCT", resource = "PRODUCT")
+    @Operation(summary = "Archive product")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
+        commandBus.dispatch(new com.zenlytic.product.commands.DeleteProductCommandRecord.Command(id));
+        return ResponseEntity.ok(ApiResponse.ok("Product archived successfully", null));
+    }
+
     @PostMapping("/api/v1/products/reserve-stock")
     @Operation(summary = "Reserve stock for an order (Distributed Saga step)")
     public ResponseEntity<ApiResponse<ProductDto.ReserveStockResponse>> reserveStock(@Valid @RequestBody ProductDto.ReserveStockRequest request) {
