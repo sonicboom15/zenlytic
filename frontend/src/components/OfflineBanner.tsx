@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNetwork } from '../context/NetworkContext';
+import { useNetwork } from '../hooks';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 export const OfflineBanner: React.FC = () => {

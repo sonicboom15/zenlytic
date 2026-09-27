@@ -80,6 +80,9 @@ export const LoginPage: React.FC = () => {
           {isRegisteringTenant ? (
             <>
               <Input
+                id="login-org-name"
+                name="organization"
+                autoComplete="organization"
                 label="Organization Name"
                 required
                 value={orgName}
@@ -94,6 +97,9 @@ export const LoginPage: React.FC = () => {
               />
 
               <Input
+                id="login-register-tenant-id"
+                name="tenantId"
+                autoComplete="off"
                 label="Tenant Identifier Key"
                 required
                 mono
@@ -104,6 +110,8 @@ export const LoginPage: React.FC = () => {
               />
 
               <Select
+                id="login-plan-tier"
+                name="planTier"
                 label="Plan Tier"
                 value={planTier}
                 onChange={(e) => setPlanTier(e.target.value)}
@@ -116,6 +124,9 @@ export const LoginPage: React.FC = () => {
             </>
           ) : (
             <Input
+              id="login-tenant-id"
+              name="tenantId"
+              autoComplete="organization"
               label="Workspace Identifier"
               required
               mono
@@ -127,6 +138,9 @@ export const LoginPage: React.FC = () => {
           )}
 
           <Input
+            id="login-email"
+            name="email"
+            autoComplete="username"
             label={isRegisteringTenant ? 'Admin Email Address' : 'Email Address'}
             type="email"
             required
@@ -137,6 +151,9 @@ export const LoginPage: React.FC = () => {
           />
 
           <Input
+            id="login-password"
+            name="password"
+            autoComplete={isRegisteringTenant ? 'new-password' : 'current-password'}
             label="Password"
             type="password"
             required

@@ -7,6 +7,7 @@ import com.zenlytic.common.batch.service.BatchProcessor;
 import com.zenlytic.common.cqrs.command.Command;
 import com.zenlytic.common.cqrs.command.CommandHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 public final class BatchCreateUsersCommandRecord {
 
@@ -24,6 +25,7 @@ public final class BatchCreateUsersCommandRecord {
         }
 
         @Override
+        @Transactional(rollbackFor = Exception.class)
         public BatchResponse<UserDto.Response> handle(Command command) {
             return batchProcessor.processSequential(
                     command.request(),
@@ -33,4 +35,3 @@ public final class BatchCreateUsersCommandRecord {
         }
     }
 }
-

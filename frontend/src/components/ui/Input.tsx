@@ -11,8 +11,9 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, leftIcon, rightIcon, mono = false, className = '', id, ...props }, ref) => {
-    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  ({ label, error, helperText, leftIcon, rightIcon, mono = false, className = '', id, name, ...props }, ref) => {
+    const inputId = id || (label ? 'input-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : undefined);
+    const inputName = name || inputId;
 
     return (
       <div className="space-y-1.5 w-full">
@@ -30,6 +31,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            name={inputName}
             className={`w-full bg-slate-50 border rounded-lg py-2 text-xs text-slate-900 placeholder-slate-400 outline-none transition ${
               mono ? 'font-mono' : ''
             } ${leftIcon ? 'pl-9' : 'pl-3'} ${rightIcon ? 'pr-9' : 'pr-3'} ${
@@ -61,8 +63,9 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, helperText, options, children, className = '', id, ...props }, ref) => {
-    const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  ({ label, error, helperText, options, children, className = '', id, name, ...props }, ref) => {
+    const selectId = id || (label ? 'select-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : undefined);
+    const selectName = name || selectId;
 
     return (
       <div className="space-y-1.5 w-full">
@@ -74,6 +77,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           id={selectId}
+          name={selectName}
           className={`w-full bg-slate-50 border rounded-lg px-3 py-2 text-xs text-slate-900 outline-none transition ${
             error
               ? 'border-rose-300 focus:border-rose-500 focus:bg-white'
@@ -104,8 +108,9 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, error, helperText, className = '', id, ...props }, ref) => {
-    const textareaId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  ({ label, error, helperText, className = '', id, name, ...props }, ref) => {
+    const textareaId = id || (label ? 'textarea-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : undefined);
+    const textareaName = name || textareaId;
 
     return (
       <div className="space-y-1.5 w-full">
@@ -117,6 +122,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={textareaId}
+          name={textareaName}
           className={`w-full bg-slate-50 border rounded-lg p-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition ${
             error
               ? 'border-rose-300 focus:border-rose-500 focus:bg-white'
@@ -137,6 +143,9 @@ export interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  id?: string;
+  name?: string;
+  'aria-label'?: string;
 }
 
 export const SearchInput: React.FC<SearchInputProps> = ({
@@ -144,11 +153,19 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   onChange,
   placeholder = 'Search...',
   className = '',
+  id,
+  name = 'search',
+  'aria-label': ariaLabel,
 }) => {
+  const searchId = id || 'search-' + Math.random().toString(36).substring(2, 7);
+
   return (
     <div className={`relative flex items-center bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-xs transition focus-within:border-blue-500 ${className}`}>
       <Search className="w-4 h-4 text-slate-400 shrink-0 mr-2.5" />
       <input
+        id={searchId}
+        name={name}
+        aria-label={ariaLabel || placeholder}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -158,8 +175,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {value && (
         <button
           type="button"
+          aria-label="Clear search input"
           onClick={() => onChange('')}
-          className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition"
+          className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -167,4 +185,3 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     </div>
   );
 };
-

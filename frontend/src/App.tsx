@@ -1,11 +1,12 @@
 import React from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { TenantProvider } from './context/TenantContext';
 import { NetworkProvider } from './context/NetworkContext';
 import { ToastProvider } from './context/ToastContext';
-import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { NavigationProvider } from './context/NavigationContext';
 import { CommerceProvider } from './context/CommerceContext';
 import { CartProvider } from './context/CartContext';
+import { useAuth, useNavigation } from './hooks';
 import { LoginPage } from './pages/LoginPage';
 import { DesktopLayout } from './layouts/DesktopLayout';
 import { MobileLayout } from './layouts/MobileLayout';

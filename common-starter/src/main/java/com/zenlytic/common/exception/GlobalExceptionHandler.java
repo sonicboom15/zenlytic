@@ -19,6 +19,13 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(com.zenlytic.common.batch.model.BatchAtomicRollbackException.class)
+    public ResponseEntity<com.zenlytic.common.model.ApiResponse<com.zenlytic.common.batch.model.BatchResponse<?>>> handleBatchAtomicRollback(
+            com.zenlytic.common.batch.model.BatchAtomicRollbackException ex) {
+        log.warn("Batch atomic transaction rollback handled: returning failure diagnostics with 200 OK");
+        return ResponseEntity.ok(com.zenlytic.common.model.ApiResponse.ok("Batch transaction rolled back", ex.getBatchResponse()));
+    }
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApiException(ApiException ex, HttpServletRequest request) {
         log.warn("API Exception [{}]: {}", ex.getErrorCode(), ex.getMessage());

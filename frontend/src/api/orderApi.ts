@@ -34,7 +34,7 @@ export const orderApi = {
   },
 
   getSagaTimeline: async (sagaId: string) => {
-    const res = await api.get<{ success: boolean; data: SagaTimeline }>('/api/v1/orders/sagas/' + sagaId + '/timeline');
+    const res = await api.get<{ success: boolean; data: SagaTimeline }>('/api/v1/sagas/' + sagaId + '/timeline');
     return res.data.data;
   }
 };

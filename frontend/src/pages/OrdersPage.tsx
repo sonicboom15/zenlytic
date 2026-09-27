@@ -191,18 +191,8 @@ export const OrdersPage: React.FC = () => {
                 <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
                 Querying Saga Execution Audit Log...
               </div>
-            ) : sagaTimeline ? (
-              <SagaTimelineVisualizer timeline={sagaTimeline} />
             ) : (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 space-y-2">
-                <div className="font-bold text-slate-800">4-Step Distributed Saga Execution Pipeline:</div>
-                <div className="text-slate-600 space-y-1 font-mono text-[11px]">
-                  <div className="text-emerald-700">1. CreatePendingOrderStep (status: SUCCESS)</div>
-                  <div className="text-emerald-700">2. ReserveInventoryStep (status: SUCCESS)</div>
-                  <div className="text-emerald-700">3. ProcessPaymentStep (status: SUCCESS)</div>
-                  <div className="text-emerald-700">4. ConfirmOrderStep (status: SUCCESS)</div>
-                </div>
-              </div>
+              <SagaTimelineVisualizer timeline={sagaTimeline || undefined} orderId={selectedOrder.sagaId || selectedOrder.orderId} />
             )}
           </div>
         </Modal>

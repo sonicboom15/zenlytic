@@ -1,5 +1,6 @@
 package com.zenlytic.common.batch.service;
 
+import com.zenlytic.common.batch.model.BatchAtomicRollbackException;
 import com.zenlytic.common.batch.model.BatchItemResult;
 import com.zenlytic.common.batch.model.BatchRequest;
 import com.zenlytic.common.batch.model.BatchResponse;
@@ -27,7 +28,7 @@ public class BatchProcessor {
     private record IndexedItem<T>(int index, T item) {}
 
     /**
-     * Process items sequentially with item-level error handling.
+     * Process items sequentially with optional atomic transactional rollback on failure.
      */
     public <T, R> BatchResponse<R> processSequential(
             BatchRequest<T> request,
@@ -49,11 +50,44 @@ public class BatchProcessor {
                 results.add(BatchItemResult.success(i, key, result));
             } catch (Exception ex) {
                 log.warn("Error processing batch item at index [{}], key [{}]: {}", i, key, ex.getMessage());
-                results.add(BatchItemResult.failure(i, key, ex.getMessage(), ex.getClass().getSimpleName()));
+
+                // If atomic mode (continueOnError == false), rollback all items via BatchAtomicRollbackException
                 if (!request.continueOnError()) {
-                    log.info("Batch halted at index [{}] because continueOnError is false", i);
-                    break;
+                    log.info("Batch halted at index [{}] with error [{}]. Throwing BatchAtomicRollbackException for transaction rollback.", i, ex.getMessage());
+
+                    List<BatchItemResult<R>> atomicResults = new ArrayList<>(items.size());
+
+                    // Items before i that were processed are now reverted by transactional rollback
+                    for (int j = 0; j < i; j++) {
+                        T prevItem = items.get(j);
+                        String prevKey = keyExtractor != null ? keyExtractor.apply(prevItem) : String.valueOf(j);
+                        atomicResults.add(BatchItemResult.failure(
+                                j,
+                                prevKey,
+                                "Reverted: Batch transaction rolled back due to error on item #" + (i + 1) + " [" + key + "]: " + ex.getMessage(),
+                                "BatchRollbackException"
+                        ));
+                    }
+
+                    // The failing item
+                    atomicResults.add(BatchItemResult.failure(i, key, ex.getMessage(), ex.getClass().getSimpleName()));
+
+                    // Remaining items that were skipped
+                    for (int k = i + 1; k < items.size(); k++) {
+                        T nextItem = items.get(k);
+                        String nextKey = keyExtractor != null ? keyExtractor.apply(nextItem) : String.valueOf(k);
+                        atomicResults.add(BatchItemResult.failure(
+                                k,
+                                nextKey,
+                                "Aborted: Batch processing halted due to error on item #" + (i + 1),
+                                "BatchAbortedException"
+                        ));
+                    }
+
+                    throw new BatchAtomicRollbackException(BatchResponse.of(atomicResults));
                 }
+
+                results.add(BatchItemResult.failure(i, key, ex.getMessage(), ex.getClass().getSimpleName()));
             }
         }
 
@@ -97,4 +131,3 @@ public class BatchProcessor {
         return BatchResponse.of(results);
     }
 }
-

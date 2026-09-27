@@ -6,8 +6,8 @@ import { productApi } from '../api/productApi';
 import { customerApi } from '../api/customerApi';
 import { orderApi } from '../api/orderApi';
 import { offlineDb } from '../utils/offlineDb';
-import { useTenant } from './TenantContext';
-import { useAuth } from './AuthContext';
+import { useTenant } from '../hooks/useTenant';
+import { useAuth } from '../hooks/useAuth';
 
 export interface CommerceKPIs {
   revenue: number;
@@ -16,7 +16,7 @@ export interface CommerceKPIs {
   activeProducts: number;
 }
 
-interface CommerceContextType {
+export interface CommerceContextType {
   // Products
   products: Product[];
   loadingProducts: boolean;
@@ -43,12 +43,15 @@ interface CommerceContextType {
   inspectSagaTimeline: (order: Order) => Promise<void>;
   clearSelectedOrder: () => void;
 
+  // Backend Connectivity / Offline Status
+  backendDegraded: boolean;
+
   // KPIs
   kpis: CommerceKPIs;
   refreshAll: () => Promise<void>;
 }
 
-const CommerceContext = createContext<CommerceContextType | undefined>(undefined);
+export const CommerceContext = createContext<CommerceContextType | undefined>(undefined);
 
 export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeTenantId } = useTenant();
@@ -69,6 +72,9 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [sagaTimeline, setSagaTimeline] = useState<SagaTimeline | null>(null);
   const [loadingTimeline, setLoadingTimeline] = useState<boolean>(false);
 
+  // Backend State
+  const [backendDegraded, setBackendDegraded] = useState<boolean>(false);
+
   // KPIs State
   const [kpis, setKpis] = useState<CommerceKPIs>({
     revenue: 0,
@@ -86,8 +92,10 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const list = res.content || [];
       setProducts(list);
       await offlineDb.cacheProducts(list);
+      setBackendDegraded(false);
     } catch (e) {
       console.warn('Online product fetch failed, falling back to IndexedDB cache', e);
+      setBackendDegraded(true);
       const cached = await offlineDb.getCachedProducts();
       setProducts(cached);
     } finally {
@@ -105,8 +113,10 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const list = res.content || [];
         setCustomers(list);
         await offlineDb.cacheCustomers(list);
+        setBackendDegraded(false);
       } catch (e) {
         console.warn('Online customer fetch failed, falling back to IndexedDB cache', e);
+        setBackendDegraded(true);
         const cached = await offlineDb.getCachedCustomers();
         setCustomers(cached);
       } finally {
@@ -170,7 +180,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Batch Create Products
   const batchCreateProducts = async (items: ProductCreateRequest[]) => {
-    const res = await productApi.batchCreate({ items, continueOnError: true });
+    const res = await productApi.batchCreate({ items, continueOnError: false });
     await fetchProducts();
     return res;
   };
@@ -184,7 +194,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Batch Create Customers
   const batchCreateCustomers = async (items: CustomerCreateRequest[]) => {
-    const res = await customerApi.batchCreate({ items, continueOnError: true });
+    const res = await customerApi.batchCreate({ items, continueOnError: false });
     await fetchCustomers();
     return res;
   };
@@ -247,6 +257,7 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loadingTimeline,
         inspectSagaTimeline,
         clearSelectedOrder,
+        backendDegraded,
         kpis,
         refreshAll,
       }}
@@ -254,12 +265,4 @@ export const CommerceProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {children}
     </CommerceContext.Provider>
   );
-};
-
-export const useCommerce = () => {
-  const context = useContext(CommerceContext);
-  if (!context) {
-    throw new Error('useCommerce must be used within a CommerceProvider');
-  }
-  return context;
 };

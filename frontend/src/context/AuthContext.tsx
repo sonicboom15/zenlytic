@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthResponse, Tenant } from '../types/auth';
 import { authApi } from '../api/authApi';
 
-interface AuthContextType {
+export interface AuthContextType {
   token: string | null;
   userId: string | null;
   userEmail: string | null;
@@ -19,7 +19,7 @@ interface AuthContextType {
   updateTenantInfo: (name: string, tier?: string) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));

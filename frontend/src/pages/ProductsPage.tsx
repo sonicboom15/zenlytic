@@ -71,36 +71,10 @@ export const ProductsPage: React.FC = () => {
     }
   };
 
-  const sampleBatchProducts = JSON.stringify(
-    [
-      {
-        sku: 'PROD-KB-RGB',
-        name: 'Mechanical Keyboard RGB',
-        description: 'Mechanical keyboard with hot-swappable switches',
-        price: 129.99,
-        stockQuantity: 150,
-        category: 'Peripherals',
-      },
-      {
-        sku: 'PROD-HEADSET-PRO',
-        name: 'Wireless ANC Headset Pro',
-        description: 'Noise cancelling studio quality headset',
-        price: 249.50,
-        stockQuantity: 80,
-        category: 'Audio',
-      },
-      {
-        sku: 'PROD-MONITOR-4K',
-        name: 'Ultra-Wide 34-inch 4K Monitor',
-        description: 'Curved 144Hz HDR IPS panel',
-        price: 649.00,
-        stockQuantity: 35,
-        category: 'Displays',
-      },
-    ],
-    null,
-    2
-  );
+  const sampleBatchProductsCsv = `sku,name,description,price,stockQuantity,category
+PROD-KB-RGB,Mechanical Keyboard RGB,Mechanical keyboard with hot-swappable switches,129.99,150,Peripherals
+PROD-HEADSET-PRO,Wireless ANC Headset Pro,Noise cancelling studio quality headset,249.50,80,Audio
+PROD-MONITOR-4K,Ultra-Wide 34-inch 4K Monitor,Curved 144Hz HDR IPS panel,649.00,35,Displays`;
 
   const filtered = products.filter(
     (p) =>
@@ -287,10 +261,10 @@ export const ProductsPage: React.FC = () => {
       {/* Batch Import Modal */}
       <BatchImportModal<ProductCreateRequest, Product>
         title="Batch Import Products (Standard Chassis)"
+        templateFilename="products_template.csv"
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
-        sampleTemplate={sampleBatchProducts}
-        parseInput={(text) => JSON.parse(text)}
+        sampleTemplate={sampleBatchProductsCsv}
         onImport={(items) => batchCreateProducts(items)}
         renderItemSummary={(p) => `${p.name} ($${p.price})`}
       />

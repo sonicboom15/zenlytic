@@ -17,10 +17,16 @@ test.describe('Frontend UI, POS Offline Engine & DB Verification Suite', () => {
       await signInBtn.click();
       await expect(page.getByText(`Tenant Overview: [${tenantId}]`)).toBeVisible({ timeout: 10000 });
     }
+    // Dismiss any open modal overlay if present
+    if (await page.locator('.fixed.inset-0').isVisible({ timeout: 500 }).catch(() => false)) {
+      await page.keyboard.press('Escape');
+    }
   }
 
   test('01. UI Tenant Onboarding and Automatic Routing', async ({ page }) => {
     await page.goto(FRONTEND_URL);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
 
     // Switch to Register Organization mode
     const registerBtn = page.getByRole('button', { name: '+ Register New Tenant Organization' });
@@ -138,7 +144,7 @@ test.describe('Frontend UI, POS Offline Engine & DB Verification Suite', () => {
     await addBtn.click();
 
     // Test Exceeding Discount Cap (Input 25% > 20% limit)
-    const discountInput = page.getByRole('spinbutton', { name: '0.0' });
+    const discountInput = page.locator('#pos-discount-input');
     await discountInput.fill('25');
 
     // Assert validation error and disabled checkout button
@@ -164,5 +170,55 @@ test.describe('Frontend UI, POS Offline Engine & DB Verification Suite', () => {
     await page.getByRole('button', { name: 'Timeline' }).first().click();
     await expect(page.getByText('Order Details & Saga Orchestrator')).toBeVisible();
     await expect(page.getByText('4-Step Distributed Saga Execution Pipeline:')).toBeVisible();
+
+    // Close Modal
+    await page.keyboard.press('Escape');
+  });
+
+  test('05. CSV Batch Import with Atomic Transactional Rollback on Duplicate Failure', async ({ page, request }) => {
+    await ensureLoggedIn(page);
+
+    // Navigate to Customers tab
+    await page.getByRole('button', { name: 'Customers (B2B)' }).click();
+
+    // Open Batch Import modal
+    await page.getByRole('button', { name: 'Batch Import' }).click();
+    await expect(page.getByText('Batch Import B2B Customers')).toBeVisible();
+    await expect(page.getByText('Download CSV Template')).toBeVisible();
+
+    // Input CSV with 1 valid row and 1 duplicate row ('NWT-01' exists from test 02)
+    const invalidBatchCsv = `name,code,companyName,email,phone,creditLimit,maxDiscountPercentage,tier,status
+Acme Supplies Corp,ACME-ROLLBACK-01,Acme LLC,acme@test.com,555-9999,50000,15,STANDARD,ACTIVE
+Northwind Traders Duplicate,NWT-01,Duplicate Corp,dup@test.com,555-0000,20000,10,GOLD,ACTIVE`;
+
+    const textarea = page.locator('textarea');
+    await textarea.fill(invalidBatchCsv);
+
+    // Click Start Batch Import
+    const importBtn = page.getByRole('button', { name: /Start Batch Import/ });
+    await importBtn.click();
+
+    // Assert Atomic Rollback UI Banner
+    await expect(page.getByText('Atomic Batch Rolled Back — 0 Records Persisted')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Reverted: Batch transaction rolled back')).toBeVisible();
+    await page.getByRole('button', { name: 'Done' }).click();
+
+    // Verify through DB query that ACME-ROLLBACK-01 was NOT persisted
+    const authRes = await request.post(`${GATEWAY_URL}/api/v1/auth/login`, {
+      data: { email: adminEmail, password: adminPassword, tenantId },
+      headers: { 'X-Tenant-ID': tenantId }
+    });
+    const token = (await authRes.json()).data.token;
+
+    const custDbRes = await request.get(`${GATEWAY_URL}/api/v1/customers?search=ACME-ROLLBACK-01`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Tenant-ID': tenantId
+      }
+    });
+    expect(custDbRes.status()).toBe(200);
+    const custDbData = await custDbRes.json();
+    expect(custDbData.data.content.length).toBe(0); // 0 records persisted!
   });
 });
+

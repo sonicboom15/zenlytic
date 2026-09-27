@@ -89,26 +89,9 @@ export const UsersPage: React.FC = () => {
     }
   };
 
-  const sampleBatchUsers = JSON.stringify(
-    [
-      {
-        fullName: 'Sarah Jenkins',
-        email: 'sarah.j@company.com',
-        password: 'TempPassword123!',
-        phoneNumber: '555-0301',
-        roles: ['ROLE_SALES_REP'],
-      },
-      {
-        fullName: 'David Chen',
-        email: 'david.c@company.com',
-        password: 'TempPassword123!',
-        phoneNumber: '555-0302',
-        roles: ['ROLE_MANAGER'],
-      },
-    ],
-    null,
-    2
-  );
+  const sampleBatchUsersCsv = `fullName,email,password,phoneNumber,role
+Sarah Jenkins,sarah.j@company.com,TempPassword123!,555-0301,ROLE_SALES_REP
+David Chen,david.c@company.com,TempPassword123!,555-0302,ROLE_MANAGER`;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -261,15 +244,26 @@ export const UsersPage: React.FC = () => {
 
       {/* Batch Import Modal */}
       <BatchImportModal<any, User>
-        title="Batch Onboard Users (Standard Chassis)"
+        title="Batch Onboard Users"
+        templateFilename="users_template.csv"
         isOpen={isBatchModalOpen}
         onClose={() => {
           setIsBatchModalOpen(false);
           fetchUsers();
         }}
-        sampleTemplate={sampleBatchUsers}
-        parseInput={(text) => JSON.parse(text)}
-        onImport={(items) => userTenantApi.batchCreateUsers({ items, continueOnError: true })}
+        sampleTemplate={sampleBatchUsersCsv}
+        onImport={(items) => {
+          // Normalize role strings to arrays
+          const mapped = items.map((u: any) => ({
+            fullName: u.fullName,
+            email: u.email,
+            password: u.password,
+            phoneNumber: u.phoneNumber,
+            roles: Array.isArray(u.roles) ? u.roles : [u.role || 'ROLE_SALES_REP'],
+            status: u.status || 'ACTIVE',
+          }));
+          return userTenantApi.batchCreateUsers({ items: mapped, continueOnError: false });
+        }}
         renderItemSummary={(u) => `${u.fullName} (${u.email})`}
       />
     </div>

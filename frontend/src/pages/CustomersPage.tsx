@@ -81,34 +81,9 @@ export const CustomersPage: React.FC = () => {
     }
   };
 
-  const sampleBatchCustomers = JSON.stringify(
-    [
-      {
-        name: 'Northwest Electronics Corp',
-        code: 'NW-ELEC-01',
-        companyName: 'Northwest Tech Group',
-        email: 'purchasing@nwelec.com',
-        phone: '555-0199',
-        creditLimit: 75000,
-        maxDiscountPercentage: 20,
-        tier: 'PLATINUM',
-        status: 'ACTIVE',
-      },
-      {
-        name: 'Summit Outdoor Retailers',
-        code: 'SUMMIT-02',
-        companyName: 'Summit Gear LLC',
-        email: 'orders@summitgear.com',
-        phone: '555-0188',
-        creditLimit: 30000,
-        maxDiscountPercentage: 12.5,
-        tier: 'GOLD',
-        status: 'ACTIVE',
-      },
-    ],
-    null,
-    2
-  );
+  const sampleBatchCustomersCsv = `name,code,companyName,email,phone,creditLimit,maxDiscountPercentage,tier,status
+Northwest Electronics Corp,NW-ELEC-01,Northwest Tech Group,purchasing@nwelec.com,555-0199,75000,20,PLATINUM,ACTIVE
+Summit Outdoor Retailers,SUMMIT-02,Summit Gear LLC,orders@summitgear.com,555-0188,30000,12.5,GOLD,ACTIVE`;
 
   const filtered = customers.filter(
     (c) =>
@@ -311,11 +286,11 @@ export const CustomersPage: React.FC = () => {
 
       {/* Batch Import Modal */}
       <BatchImportModal<CustomerCreateRequest, Customer>
-        title="Batch Import B2B Customers (Standard Chassis)"
+        title="Batch Import B2B Customers"
+        templateFilename="customers_template.csv"
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
-        sampleTemplate={sampleBatchCustomers}
-        parseInput={(text) => JSON.parse(text)}
+        sampleTemplate={sampleBatchCustomersCsv}
         onImport={(items) => batchCreateCustomers(items)}
         renderItemSummary={(c) => `${c.name} (${c.maxDiscountPercentage}% max disc)`}
       />

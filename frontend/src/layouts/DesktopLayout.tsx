@@ -34,7 +34,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
 
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pos', label: 'POS / New Order', icon: ShoppingCart, highlight: true },
+    { id: 'pos', label: 'POS / New Order', icon: ShoppingCart },
     { id: 'customers', label: 'Customers (B2B)', icon: Users },
     { id: 'products', label: 'Product Catalog', icon: Package },
     { id: 'orders', label: 'Orders & Sagas', icon: Receipt },
@@ -85,8 +85,6 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                       isActive
                         ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-200/80 shadow-xs'
-                        : item.highlight
-                        ? 'bg-slate-50 text-slate-800 hover:bg-slate-100 border border-slate-200'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >

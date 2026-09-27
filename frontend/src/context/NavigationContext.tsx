@@ -10,14 +10,14 @@ export type NavigationTab =
   | 'users'
   | 'tenants';
 
-interface NavigationContextType {
+export interface NavigationContextType {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   navigateTo: (tab: NavigationTab | string) => void;
   isMobile: boolean;
 }
 
-const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
+export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -46,13 +46,5 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       {children}
     </NavigationContext.Provider>
   );
-};
-
-export const useNavigation = () => {
-  const context = useContext(NavigationContext);
-  if (!context) {
-    throw new Error('useNavigation must be used within a NavigationProvider');
-  }
-  return context;
 };
 

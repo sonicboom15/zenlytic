@@ -189,8 +189,17 @@ export const NewOrderPOSPage: React.FC = () => {
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select ${product.name}, price $${Number(product.price).toFixed(2)}`}
                   onClick={() => addItem(product)}
-                  className="bg-slate-50/60 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 p-3.5 rounded-xl transition cursor-pointer flex flex-col justify-between group shadow-2xs"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      addItem(product);
+                    }
+                  }}
+                  className="bg-slate-50/60 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 focus:border-blue-500 focus:bg-blue-50/40 focus:outline-none focus:ring-1 focus:ring-blue-500 p-3.5 rounded-xl transition cursor-pointer flex flex-col justify-between group shadow-2xs"
                 >
                   <div>
                     <div className="font-bold text-xs text-slate-900 group-hover:text-blue-700 truncate">
@@ -203,9 +212,17 @@ export const NewOrderPOSPage: React.FC = () => {
                     <div className="font-bold text-sm text-slate-900 font-mono">
                       ${Number(product.price).toFixed(2)}
                     </div>
-                    <span className="text-[11px] text-blue-700 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white px-2 py-0.5 rounded font-semibold transition border border-blue-200">
+                    <button
+                      type="button"
+                      aria-label={`Add ${product.name} to cart`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addItem(product);
+                      }}
+                      className="text-[11px] text-blue-700 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white px-2.5 py-1 rounded-md font-semibold transition border border-blue-200 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center gap-1"
+                    >
                       + Add
-                    </span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -285,22 +302,35 @@ export const NewOrderPOSPage: React.FC = () => {
               {/* Discount Input */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <label htmlFor="pos-discount-input" className="font-semibold text-slate-700 flex items-center gap-1.5">
                     <Percent className="w-3.5 h-3.5 text-blue-600" />
                     <span>Authorized B2B Discount (%)</span>
-                  </span>
+                  </label>
                   {selectedCustomer && (
-                    <span className="text-[11px] text-slate-500">
-                      Cap: <strong className="text-slate-800 font-bold">{maxAllowedDiscount}%</strong>
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500">
+                        Cap: <strong className="text-slate-800 font-bold">{maxAllowedDiscount}%</strong>
+                      </span>
+                      {maxAllowedDiscount > 0 && discountPercentage !== maxAllowedDiscount && (
+                        <button
+                          type="button"
+                          onClick={() => setDiscountPercentage(maxAllowedDiscount)}
+                          className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
+                        >
+                          Apply Max
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
                 <input
+                  id="pos-discount-input"
+                  name="discountPercentage"
                   type="number"
                   step="0.5"
                   min="0"
-                  max="100"
+                  max={selectedCustomer ? maxAllowedDiscount : 100}
                   value={discountPercentage}
                   onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)}
                   className={`w-full bg-slate-50 border rounded-lg p-2.5 text-xs text-slate-900 font-mono outline-none transition ${

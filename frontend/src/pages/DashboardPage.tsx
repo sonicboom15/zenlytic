@@ -124,22 +124,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate: propOn
     }
   };
 
-  const sampleBatchCustomers = JSON.stringify(
-    [
-      {
-        name: 'Apex Global Industries',
-        code: 'APEX-01',
-        companyName: 'Apex Corp LLC',
-        email: 'orders@apex.com',
-        creditLimit: 25000,
-        maxDiscountPercentage: 20,
-        tier: 'PLATINUM',
-        status: 'ACTIVE',
-      },
-    ],
-    null,
-    2
-  );
+  const sampleBatchCustomersCsv = `name,code,companyName,email,creditLimit,maxDiscountPercentage,tier,status
+Apex Global Industries,APEX-01,Apex Corp LLC,orders@apex.com,25000,20,PLATINUM,ACTIVE
+Northwind Retailers,NW-02,Northwind LLC,orders@northwind.com,15000,15,GOLD,ACTIVE`;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -584,11 +571,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate: propOn
 
       {/* Batch Import Modal */}
       <BatchImportModal<CustomerCreateRequest, Customer>
-        title="Batch Import B2B Customers (Standard Chassis)"
+        title="Batch Import B2B Customers"
+        templateFilename="customers_template.csv"
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
-        sampleTemplate={sampleBatchCustomers}
-        parseInput={(text) => JSON.parse(text)}
+        sampleTemplate={sampleBatchCustomersCsv}
         onImport={(items) => batchCreateCustomers(items)}
         renderItemSummary={(c) => `${c.name} (${c.maxDiscountPercentage}% max disc)`}
       />

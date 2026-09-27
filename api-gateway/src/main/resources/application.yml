@@ -63,7 +63,18 @@ spring:
           predicates:
             - Host=config.api.localhost
 
-        # Customer Service Routes
+        # Customer & B2B Account Service Routes
+        - id: customer-service-route
+          uri: ${CUSTOMER_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/customers/**
+
+        - id: customer-host-route
+          uri: ${CUSTOMER_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Host=customers.api.localhost
+
+        # Worker Service Routes
         - id: worker-service-route
           uri: ${WORKER_SERVICE_URL:http://localhost:8083}
           predicates:

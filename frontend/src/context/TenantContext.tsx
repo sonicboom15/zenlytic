@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Tenant } from '../types/auth';
 import { authApi } from '../api/authApi';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
-interface TenantContextType {
+export interface TenantContextType {
   activeTenantId: string;
   tenantName: string;
   tenantTier: string;
@@ -14,7 +14,7 @@ interface TenantContextType {
   updateTenantInfo: (name: string, tier?: string) => void;
 }
 
-const TenantContext = createContext<TenantContextType | undefined>(undefined);
+export const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const {

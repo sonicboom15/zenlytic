@@ -2,10 +2,10 @@ import React, { createContext, useContext, useState, useMemo, useCallback } from
 import { Product } from '../types/product';
 import { Customer } from '../types/customer';
 import { Order, OrderCreateRequest } from '../types/order';
-import { useCommerce } from './CommerceContext';
-import { useNetwork } from './NetworkContext';
-import { useTenant } from './TenantContext';
-import { useToast } from './ToastContext';
+import { useCommerce } from '../hooks/useCommerce';
+import { useNetwork } from '../hooks/useNetwork';
+import { useTenant } from '../hooks/useTenant';
+import { useToast } from '../hooks/useToast';
 import { offlineDb } from '../utils/offlineDb';
 
 export interface CartItem {
@@ -16,7 +16,7 @@ export interface CartItem {
   product: Product;
 }
 
-interface CartContextType {
+export interface CartContextType {
   items: CartItem[];
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (sku: string) => void;
@@ -40,7 +40,7 @@ interface CartContextType {
   executeCheckout: () => Promise<{ success: boolean; orderId?: string; isOffline?: boolean }>;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+export const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { customers, createOrder, fetchOrders } = useCommerce();
@@ -226,13 +226,3 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </CartContext.Provider>
   );
 };
-
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
-
-export const usePOS = useCart;
